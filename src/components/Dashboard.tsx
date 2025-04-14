@@ -1,52 +1,58 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+declare global {
+  interface Window {
+    waEmbeddedSignup?: any;
+  }
+}
 
 const Dashboard = () => {
-  interface User {
-    name: string;
-    email: string;
-    picture: string;
-  }
-
-  const [user, setUser] = useState<User | null>(null);
-  const navigate = useNavigate();
+  const [showSignup, setShowSignup] = useState(false);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/auth/user", { withCredentials: true })
-      .then((res) => {
-        console.log(res.data.user);
-        setUser(res.data.user);
-      })
-      .catch((err) => {
-        console.error(err);
-        navigate("/");
-      });
-  }, [navigate]);
+    const params = new URLSearchParams(window.location.search);
+    const hasWABA = params.get("hasWABA");
+    const fbAccessToken = params.get("fbAccessToken");
 
-  const handleLogout = () => {
-    axios
-      .get("http://localhost:3000/logout", { withCredentials: true })
-      .then(() => navigate("/"))
-      .catch((err) => console.log("Logout Successfully", err));
-  };
+    const loadWaSignupScript = () => {
+      const script = document.createElement("script");
+      script.src = "https://www.whatsapp.com/business/embedded-signup.js";
+      script.async = true;
+      script.onload = () => {
+        if (
+          hasWABA === "false" &&
+          fbAccessToken &&
+          window.waEmbeddedSignup
+        ) {
+          setShowSignup(true);
+
+          window.waEmbeddedSignup.init({
+            element: "wa_embed_signup",
+            accessToken: fbAccessToken,
+            businessName: "My Business Name",
+            callback: (result: any) => {
+              console.log("Signup result:", result);
+              // Store result.waba_id, phone_number_id, etc.
+            },
+          });
+        }
+      };
+      script.onerror = () => {
+        console.error("❌ Failed to load WhatsApp embedded signup script");
+      };
+      document.body.appendChild(script);
+    };
+
+    loadWaSignupScript();
+  }, []);
 
   return (
     <div>
-      {user ? (
-        <div>
-          <h1 className="text-2xl font-bold">Welcome, {user.name}!</h1>
-          <p>Email: {user.email}</p>
-          <button
-            onClick={handleLogout}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
-          >
-            Logout
-          </button>
-        </div>
+      <h1>Dashboard</h1>
+      {showSignup ? (
+        <div id="wa_embed_signup" />
       ) : (
-        <p>Loading user data...</p>
+        <p>You already have a WhatsApp Business Account 🎉</p>
       )}
     </div>
   );
