@@ -17,7 +17,7 @@ const FacebookLogin = () => {
           appId: "1272868310644432", // ✅ your App ID
           autoLogAppEvents: true,
           xfbml: true,
-          version: "v22.0", // ✅ Graph API version
+          version: "v19.0", // ✅ Graph API version
         });
       };
     };
