@@ -14,7 +14,7 @@ const FacebookLogin = () => {
     script.onload = () => {
       (window as any).fbAsyncInit = function () {
         (window as any).FB.init({
-          appId: 1272868310644432, // ✅ your App ID
+          appId: 1373927557124467, // ✅ your App ID
           autoLogAppEvents: true,
           xfbml: true,
           version: "v19.0", // ✅ Graph API version
@@ -66,7 +66,7 @@ const FacebookLogin = () => {
         }
       },
       {
-        config_id: 650269191137597, // ✅ your config ID
+        config_id: 1169386224974565, // ✅ your config ID
         response_type: "code",
         override_default_response_type: true,
         extras: {
