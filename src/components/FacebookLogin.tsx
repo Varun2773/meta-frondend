@@ -66,7 +66,7 @@ const FacebookLogin = () => {
         }
       },
       {
-        config_id: "650269191137597", // ✅ your config ID
+        config_id: "1016974567027067", // ✅ your config ID
         response_type: "code",
         override_default_response_type: true,
         extras: {
