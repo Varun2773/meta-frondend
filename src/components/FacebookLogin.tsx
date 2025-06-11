@@ -1,167 +1,74 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom"; // If using React Router
+import axios from "axios";
 
-declare global {
-  interface Window {
-    fbAsyncInit: () => void;
-    FB: any;
-  }
-}
-
-const FacebookLogin = () => {
+const FacebookLoginRaw = () => {
   const [sessionInfo, setSessionInfo] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
   const [sdkResponse, setSdkResponse] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
+  // Facebook App Info
+  const clientId = "2354391968251323";
+  const redirectUri = "https://meta-frondend.vercel.app/";
+  const scope =
+    "whatsapp_business_messaging,whatsapp_business_management,business_management";
+
+  // Construct the Facebook Login URL
+  const buildFacebookLoginUrl = () => {
+    const state = "xyz123"; // Optional CSRF protection
+    return `https://www.facebook.com/v23.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=${encodeURIComponent(scope)}&response_type=code&state=${state}`;
+  };
+
+  // Handle redirect from Facebook with ?code=...
   useEffect(() => {
-    // Load Facebook SDK
-    const script = document.createElement("script");
-    script.src = "https://connect.facebook.net/en_US/sdk.js";
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = "anonymous";
-    document.body.appendChild(script);
-
-    // Initialize the SDK
-    script.onload = () => {
-      window.fbAsyncInit = function () {
-        window.FB.init({
-          appId: "2354391968251323", // Your App ID
-          autoLogAppEvents: true,
-          xfbml: true,
-          version: "v23.0",
-        });
-      };
-    };
-
-    // Listen for signup flow messages
-    const handleMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== "https://www.facebook.com" &&
-        event.origin !== "https://web.facebook.com"
-      )
-        return;
-
-      const messageData = event.data;
-
-      // Try to handle JSON
-      if (
-        typeof messageData === "string" &&
-        messageData.trim().startsWith("{")
-      ) {
-        try {
-          const data = JSON.parse(messageData);
-
-          if (data.type === "WA_EMBEDDED_SIGNUP") {
-            if (data.event === "FINISH") {
-              const { phone_number_id, waba_id } = data.data;
-              console.log("FINISH → Phone:", phone_number_id, "WABA:", waba_id);
-            } else if (data.event === "CANCEL") {
-              console.warn("CANCEL → Step:", data.data.current_step);
-            } else if (data.event === "ERROR") {
-              console.error("ERROR →", data.data.error_message);
-            }
-
-            setSessionInfo(JSON.stringify(data, null, 2));
-          }
-        } catch (error: any) {
-          console.log("Error parsing JSON message:", messageData, error);
-        }
-      } else {
-        // Handle non-JSON (e.g., query strings)
-        console.log("Non-JSON message received:", messageData);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, []);
-
-  // Launch Embedded Signup
-  const launchWhatsAppSignup = () => {
-    const FB = window.FB;
-    if (!FB) return;
-
-    console.log(
-      "Launching WhatsApp signup with redirect:",
-      window.location.href
-    );
-
-    FB.login(
-      (response: any) => {
-        handleFBLogin(response);
-      },
-      {
-        config_id: "634146679679302", // Your Embedded Signup Config ID
-        response_type: "code", // Must be 'code'
-        redirect_uri: "https://meta-frondend.vercel.app/", // VERY IMPORTANT
-        override_default_response_type: true,
-        extras: { version: "v3" },
-      }
-    );
-    console.log("FB :", FB);
-  };
-
-  // Handle Facebook Login Response
-  const handleFBLogin = async (response: any) => {
-    console.log("SDK response:", response);
-
-    if (response.authResponse && response.authResponse.code) {
-      const code = response.authResponse.code;
-      console.log("Received code:", code);
-
-      try {
-        const data = await exchangeCode(code);
-        console.log("Token response:", data);
-      } catch (err) {
-        console.error("Token exchange failed:", err);
-      }
-    } else {
-      console.warn("No authResponse.code received.");
+    const fbCode = searchParams.get("code");
+    if (fbCode) {
+      setCode(fbCode);
+      exchangeCode(fbCode);
     }
+  }, [searchParams]);
 
-    setSdkResponse(JSON.stringify(response, null, 2));
-  };
-
-  // Call backend to exchange code
+  // Exchange the code for a token via your backend
   const exchangeCode = async (code: string) => {
     try {
       const response = await axios.post(
         "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
         { code }
       );
-      return response.data;
+      setSessionInfo(JSON.stringify(response.data, null, 2));
     } catch (error) {
-      console.error("Failed to exchange code", error);
-      throw error;
+      console.error("Token exchange failed:", error);
+      setSessionInfo("Token exchange failed.");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen space-y-4">
-      <button
-        onClick={launchWhatsAppSignup}
+      <a
+        href={buildFacebookLoginUrl()}
         className="bg-blue-600 text-white px-6 py-3 rounded font-bold text-lg"
       >
         Login with Facebook
-      </button>
+      </a>
 
       <div className="text-left w-full max-w-2xl px-4">
-        <p className="font-semibold">Session info response:</p>
+        <p className="font-semibold">Authorization Code:</p>
         <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-sm">
-          {sessionInfo || "No session info received yet."}
+          {code || "No code received yet."}
         </pre>
 
         <br />
 
-        <p className="font-semibold">SDK response:</p>
+        <p className="font-semibold">Backend Token Response:</p>
         <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-sm">
-          {sdkResponse || "No SDK response yet."}
+          {sessionInfo || "Waiting for code..."}
         </pre>
       </div>
     </div>
   );
 };
 
-export default FacebookLogin;
+export default FacebookLoginRaw;
