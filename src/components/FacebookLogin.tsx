@@ -9,13 +9,13 @@ declare global {
 
 const FACEBOOK_APP_ID = "2354391968251323";
 const CONFIG_ID = "634146679679302";
-const REDIRECT_URI = "https://meta-frondend.vercel.app"; // must match FB app config
+const REDIRECT_URI = "https://meta-frondend.vercel.app"; // Must match exactly with FB app config
 
 const FacebookWASignup = () => {
   const [sessionInfo, setSessionInfo] = useState("");
   const [signupData, setSignupData] = useState<any>(null);
 
-  // ✅ 1. Exchange code from URL if present
+  // ✅ 1. Exchange OAuth code with backend
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
@@ -25,17 +25,17 @@ const FacebookWASignup = () => {
     }
   }, []);
 
-  // ✅ 2. Load SDK and init WhatsApp signup
+  // ✅ 2. Load Facebook SDK and WhatsApp Embedded Signup SDK
   useEffect(() => {
-    const loadFbSdk = () => {
+    const loadFacebookSdk = () => {
       if (document.getElementById("facebook-jssdk")) return;
 
-      const script = document.createElement("script");
-      script.id = "facebook-jssdk";
-      script.src = "https://connect.facebook.net/en_US/sdk.js";
-      script.async = true;
-      script.onload = initFacebookSdk;
-      document.body.appendChild(script);
+      const fbScript = document.createElement("script");
+      fbScript.id = "facebook-jssdk";
+      fbScript.src = "https://connect.facebook.net/en_US/sdk.js";
+      fbScript.async = true;
+      fbScript.onload = initFacebookSdk;
+      document.body.appendChild(fbScript);
     };
 
     const initFacebookSdk = () => {
@@ -45,25 +45,36 @@ const FacebookWASignup = () => {
         version: "v18.0",
       });
 
-      window.FB.WAEmbeddedSignup.init({
-        app_id: FACEBOOK_APP_ID,
-        config_id: CONFIG_ID,
-        callback: (response: any) => {
-          console.log("Signup callback received:", response);
+      // Load WAEmbeddedSignup SDK (not included in core FB SDK)
+      const waScript = document.createElement("script");
+      waScript.src = "https://www.facebook.com/wa_embedded_signup/sdk.js";
+      waScript.async = true;
+      waScript.onload = () => {
+        if (window.FB && window.FB.WAEmbeddedSignup) {
+          window.FB.WAEmbeddedSignup.init({
+            app_id: FACEBOOK_APP_ID,
+            config_id: CONFIG_ID,
+            callback: (response: any) => {
+              console.log("Signup callback received:", response);
 
-          if (response.event === "FINISH") {
-            setSignupData(response.data); // phone_number_id, waba_id, etc.
-          } else if (response.event === "ERROR") {
-            console.error("Signup error:", response.data?.error_message);
-          }
-        },
-      });
+              if (response.event === "FINISH") {
+                setSignupData(response.data);
+              } else if (response.event === "ERROR") {
+                console.error("Signup error:", response.data?.error_message);
+              }
+            },
+          });
+        } else {
+          console.error("FB.WAEmbeddedSignup is not available.");
+        }
+      };
+      document.body.appendChild(waScript);
     };
 
-    loadFbSdk();
+    loadFacebookSdk();
   }, []);
 
-  // ✅ 3. Manually start OAuth login redirect
+  // ✅ 3. Manual OAuth login redirect
   const handleLogin = () => {
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(
       REDIRECT_URI
@@ -71,7 +82,7 @@ const FacebookWASignup = () => {
     window.location.href = authUrl;
   };
 
-  // ✅ 4. Exchange code with backend
+  // ✅ 4. Exchange code for access token via backend
   const exchangeCode = async (code: string) => {
     try {
       const response = await axios.post("https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code", {
@@ -89,7 +100,7 @@ const FacebookWASignup = () => {
     <div className="p-6 space-y-4 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold">WhatsApp Embedded Signup</h1>
 
-      <div id="wa-embedded-signup"></div>
+      <div id="wa-embedded-signup" className="my-4"></div>
 
       <button
         onClick={handleLogin}
@@ -100,7 +111,7 @@ const FacebookWASignup = () => {
 
       {signupData && (
         <div>
-          <p className="font-semibold">Signup Finished:</p>
+          <p className="font-semibold mt-4">✅ Signup Finished:</p>
           <pre className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
             {JSON.stringify(signupData, null, 2)}
           </pre>
@@ -108,7 +119,7 @@ const FacebookWASignup = () => {
       )}
 
       <div>
-        <p className="font-semibold">Session Info (Access Token Response):</p>
+        <p className="font-semibold mt-4">🛡️ Session Info (Access Token Response):</p>
         <pre className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
           {sessionInfo || "No token yet. Click login above."}
         </pre>
