@@ -13,13 +13,16 @@ const FacebookLoginRaw = () => {
   const redirectUri = "https://meta-frondend.vercel.app/";
   const scope =
     "whatsapp_business_messaging,whatsapp_business_management,business_management";
+  const config_id = "634146679679302";
 
   // Construct the Facebook Login URL
   const buildFacebookLoginUrl = () => {
     const state = "xyz123"; // Optional CSRF protection
     return `https://www.facebook.com/v23.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&scope=${encodeURIComponent(scope)}&response_type=code&state=${state}`;
+    )}&scope=${encodeURIComponent(
+      scope
+    )}&response_type=code&state=${state}&config_id=${config_id}`;
   };
 
   // Handle redirect from Facebook with ?code=...
