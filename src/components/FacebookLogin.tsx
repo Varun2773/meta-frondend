@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+declare global {
+  interface Window {
+    FB: any;
+  }
+}
+
 const FACEBOOK_CLIENT_ID = "2354391968251323";
-const REDIRECT_URI = "https://meta-frondend.vercel.app/"; // same domain
+const REDIRECT_URI = "https://meta-frondend.vercel.app/";
+const CONFIG_ID = "634146679679302";
 const SCOPE =
   "whatsapp_business_messaging,whatsapp_business_management,business_management";
-const CONFIG_ID = "634146679679302";
 
 const FacebookLoginRaw = () => {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [signupInfo, setSignupInfo] = useState<string | null>(null);
-  const [sessionInfo, setSessionInfo] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null);
+  const [signupInfo, setSignupInfo] = useState<string | null>(null);
 
-  // Handle popup login
+  // Handle popup login and get `code`
   const openLoginPopup = () => {
     const width = 600;
     const height = 700;
@@ -44,13 +49,13 @@ const FacebookLoginRaw = () => {
             exchangeCode(fbCode);
           }
         }
-      } catch (err) {
-        // Wait silently until redirect completes
+      } catch {
+        // Ignore cross-origin until redirect happens
       }
     }, 500);
   };
 
-  // Exchange code for token
+  // Exchange `code` for access token
   const exchangeCode = async (code: string) => {
     try {
       const response = await axios.post(
@@ -60,75 +65,62 @@ const FacebookLoginRaw = () => {
       const token = response.data.access_token;
       setAccessToken(token);
       setSessionInfo(JSON.stringify(response.data, null, 2));
-      setModalOpen(true);
+
+      initFacebookEmbeddedSignup(token);
     } catch (error) {
       console.error("Token exchange failed:", error);
       setSessionInfo("Token exchange failed.");
     }
   };
 
-  // Listen to messages from embedded signup iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== "https://www.facebook.com" &&
-        event.origin !== "https://web.facebook.com"
-      )
-        return;
+  // Load SDK and initialize embedded signup
+  const initFacebookEmbeddedSignup = (token: string) => {
+    if (window.FB && window.FB.WAEmbeddedSignup) {
+      window.FB.WAEmbeddedSignup.init({
+        app_id: FACEBOOK_CLIENT_ID,
+        access_token: token,
+        config_id: CONFIG_ID,
+        callback: (response: any) => {
+          console.log("Embedded signup callback:", response);
+          setSignupInfo(JSON.stringify(response, null, 2));
+        },
+      });
+    }
+  };
 
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "WA_EMBEDDED_SIGNUP") {
-          setSignupInfo(JSON.stringify(data, null, 2));
-          if (data.event === "FINISH") {
-            console.log("Signup completed:", data.data);
-          } else if (data.event === "CANCEL") {
-            console.warn("Signup cancelled at:", data.data.current_step);
-          } else if (data.event === "ERROR") {
-            console.error("Signup error:", data.data.error_message);
-          }
-        }
-      } catch {
-        console.warn("Non-JSON message from iframe");
-      }
+  // Load Facebook SDK
+  useEffect(() => {
+    const loadFbSdk = () => {
+      if (document.getElementById("facebook-jssdk")) return;
+      const script = document.createElement("script");
+      script.id = "facebook-jssdk";
+      script.src = "https://connect.facebook.net/en_US/sdk.js";
+      script.async = true;
+      script.onload = () => {
+        window.FB.init({
+          appId: FACEBOOK_CLIENT_ID,
+          version: "v18.0",
+          xfbml: false,
+        });
+      };
+      document.body.appendChild(script);
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    loadFbSdk();
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center space-y-6 p-4">
-      {!accessToken ? (
+    <div className="min-h-screen flex flex-col items-center justify-center space-y-6 p-6">
+      {!accessToken && (
         <button
           onClick={openLoginPopup}
           className="bg-blue-600 text-white px-6 py-3 rounded font-bold text-lg"
         >
           Login with Facebook
         </button>
-      ) : (
-        <p className="text-green-600 font-semibold text-xl">
-          ✅ Facebook Access Token Acquired
-        </p>
       )}
 
-      {modalOpen && accessToken && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded shadow-lg w-full max-w-3xl relative">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-2 right-2 text-red-500 font-bold text-lg"
-            >
-              ✕
-            </button>
-            <iframe
-              title="WA Embedded Signup"
-              src={`https://www.facebook.com/embed/wa/whatsapp-business-onboarding/?access_token=${accessToken}&config_id=${CONFIG_ID}`}
-              style={{ width: "100%", height: "600px", border: "none" }}
-            />
-          </div>
-        </div>
-      )}
+      <div id="wa-embedded-signup" className="w-full max-w-3xl mt-6" />
 
       <div className="w-full max-w-3xl text-left space-y-4">
         <div>
