@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 
 declare global {
@@ -73,16 +74,10 @@ const FacebookLogin = () => {
     const FB = window.FB;
     if (!FB) return;
 
+    console.log("Frontend redirect_uri:", window.location.href);
     FB.login(
       (response: any) => {
-        console.log("SDK response:", response);
-        if (response.authResponse) {
-          const code = response.authResponse.code;
-          console.log("Received code:", code);
-          // send code to backend
-        }
-
-        setSdkResponse(JSON.stringify(response, null, 2));
+        handleFBLogin(response);
       },
       {
         config_id: "988718802681268", // ✅ your Embedded Signup config ID
@@ -90,14 +85,43 @@ const FacebookLogin = () => {
         override_default_response_type: true,
         extras: {
           version: "v3",
-          setup: {
-            featureType: "WhatsApp Business App Onboarding", // ✅ correct placement
-          },
         },
       }
     );
   };
 
+  const handleFBLogin = async (response: any) => {
+    console.log("SDK response:", response);
+
+    if (response.authResponse) {
+      const code = response.authResponse.code;
+      console.log("Received code:", code);
+
+      try {
+        const data = await exchangeCode(code);
+        console.log("response :", data);
+      } catch (err) {
+        console.error("Token exchange failed:", err);
+      }
+    }
+
+    setSdkResponse(JSON.stringify(response, null, 2));
+  };
+
+  const exchangeCode = async (code: string) => {
+    try {
+      const response = await axios.post(
+        "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
+        {
+          code,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to exchange code", error);
+      throw error;
+    }
+  };
   return (
     <div className="flex flex-col items-center justify-center h-screen space-y-4">
       <button
