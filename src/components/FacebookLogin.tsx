@@ -74,7 +74,7 @@ const FacebookLogin = () => {
     const FB = window.FB;
     if (!FB) return;
 
-    console.log("Frontend redirect_uri:", window.location.href);
+    console.log("Frontend redirect_uri:", encodeURIComponent(window.location.href));
     FB.login(
       (response: any) => {
         handleFBLogin(response);
