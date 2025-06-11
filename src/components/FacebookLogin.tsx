@@ -68,39 +68,45 @@ const FacebookLoginRaw = () => {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const handleFbLogin = () => {
-    if (!window.FB) {
-      alert("Facebook SDK not loaded");
-      return;
-    }
+const handleFbLogin = () => {
+  if (!window.FB) {
+    alert("Facebook SDK not loaded");
+    return;
+  }
 
-    window.FB.login(
-      async (response: any) => {
-        console.log("FB.login response:", response);
-        setSdkResponse(response);
+  window.FB.login(
+    (response: any) => {
+      console.log("FB.login response:", response);
+      setSdkResponse(response);
 
-        const code = response.authResponse?.code;
-        if (code) {
-          try {
-            const res = await axios.post(
-              "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
-              { code }
-            );
-            setBackendResponse(res.data);
-          } catch (error) {
-            console.error("Backend token exchange failed:", error);
-            setBackendResponse("Backend token exchange failed");
-          }
-        }
-      },
-      {
-        config_id: CONFIG_ID,
-        response_type: "code",
-        override_default_response_type: true,
-        extras: { version: "v3" },
+      const code = response.authResponse?.code;
+      if (code) {
+        exchangeCode(code); // call async function outside
       }
+    },
+    {
+      config_id: CONFIG_ID,
+      response_type: "code",
+      override_default_response_type: true,
+      extras: { version: "v3" },
+    }
+  );
+};
+
+// Define async function separately
+const exchangeCode = async (code: string) => {
+  try {
+    const res = await axios.post(
+      "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
+      { code }
     );
-  };
+    setBackendResponse(res.data);
+  } catch (error) {
+    console.error("Backend token exchange failed:", error);
+    setBackendResponse("Backend token exchange failed");
+  }
+};
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
