@@ -72,7 +72,10 @@ const FacebookLogin = () => {
     const FB = window.FB;
     if (!FB) return;
 
-    console.log("Launching WhatsApp signup with redirect:", window.location.href);
+    console.log(
+      "Launching WhatsApp signup with redirect:",
+      window.location.href
+    );
 
     FB.login(
       (response: any) => {
@@ -81,11 +84,12 @@ const FacebookLogin = () => {
       {
         config_id: "634146679679302", // Your Embedded Signup Config ID
         response_type: "code", // Must be 'code'
-        redirect_uri:"https://meta-frondend.vercel.app/", // VERY IMPORTANT
+        redirect_uri: "https://meta-frondend.vercel.app/", // VERY IMPORTANT
         override_default_response_type: true,
         extras: { version: "v3" },
       }
     );
+    console.log("FB :",FB);
   };
 
   // Handle Facebook Login Response
