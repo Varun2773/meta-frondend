@@ -81,7 +81,7 @@ const FacebookLogin = () => {
       {
         config_id: "634146679679302", // Your Embedded Signup Config ID
         response_type: "code", // Must be 'code'
-        redirect_uri: window.location.href, // VERY IMPORTANT
+        redirect_uri:"https://meta-frondend.vercel.app/", // VERY IMPORTANT
         override_default_response_type: true,
         extras: { version: "v3" },
       }
