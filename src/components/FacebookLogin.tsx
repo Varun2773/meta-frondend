@@ -5,7 +5,7 @@ import axios from "axios";
 const FacebookLoginRaw = () => {
   const [sessionInfo, setSessionInfo] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
-  const [sdkResponse, setSdkResponse] = useState<string | null>(null);
+  // const [sdkResponse, setSdkResponse] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
   // Facebook App Info
