@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom"; // If using React Router
+import { useSearchParams } from "react-router-dom"; 
 import axios from "axios";
 
 const FacebookLoginRaw = () => {
