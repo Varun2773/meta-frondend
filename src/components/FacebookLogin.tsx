@@ -28,14 +28,17 @@ const FacebookWASignup = () => {
   // ✅ 2. Load Facebook SDK and WhatsApp Embedded Signup SDK
   useEffect(() => {
     const loadFacebookSdk = () => {
-      if (document.getElementById("facebook-jssdk")) return;
+      if (window.FB) {
+        initFacebookSdk();
+        return;
+      }
 
-      const fbScript = document.createElement("script");
-      fbScript.id = "facebook-jssdk";
-      fbScript.src = "https://connect.facebook.net/en_US/sdk.js";
-      fbScript.async = true;
-      fbScript.onload = initFacebookSdk;
-      document.body.appendChild(fbScript);
+      const script = document.createElement("script");
+      script.id = "facebook-jssdk";
+      script.src = "https://connect.facebook.net/en_US/sdk.js";
+      script.async = true;
+      script.onload = initFacebookSdk;
+      document.body.appendChild(script);
     };
 
     const initFacebookSdk = () => {
@@ -45,11 +48,8 @@ const FacebookWASignup = () => {
         version: "v18.0",
       });
 
-      // Load WAEmbeddedSignup SDK (not included in core FB SDK)
-      const waScript = document.createElement("script");
-      waScript.src = "https://www.facebook.com/wa_embedded_signup/sdk.js";
-      waScript.async = true;
-      waScript.onload = () => {
+      // Wait briefly to ensure FB.WAEmbeddedSignup is available
+      const tryInit = () => {
         if (window.FB && window.FB.WAEmbeddedSignup) {
           window.FB.WAEmbeddedSignup.init({
             app_id: FACEBOOK_APP_ID,
@@ -65,10 +65,12 @@ const FacebookWASignup = () => {
             },
           });
         } else {
-          console.error("FB.WAEmbeddedSignup is not available.");
+          console.warn("FB.WAEmbeddedSignup not ready yet, retrying...");
+          setTimeout(tryInit, 300); // Retry until available
         }
       };
-      document.body.appendChild(waScript);
+
+      tryInit();
     };
 
     loadFacebookSdk();
@@ -85,14 +87,20 @@ const FacebookWASignup = () => {
   // ✅ 4. Exchange code for access token via backend
   const exchangeCode = async (code: string) => {
     try {
-      const response = await axios.post("https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code", {
-        code,
-      });
+      const response = await axios.post(
+        "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
+        {
+          code,
+        }
+      );
 
       setSessionInfo(JSON.stringify(response.data, null, 2));
     } catch (err: any) {
       console.error("Backend token exchange failed:", err);
-      setSessionInfo("Token exchange failed. " + (err.response?.data?.error?.message || err.message));
+      setSessionInfo(
+        "Token exchange failed. " +
+          (err.response?.data?.error?.message || err.message)
+      );
     }
   };
 
@@ -119,7 +127,9 @@ const FacebookWASignup = () => {
       )}
 
       <div>
-        <p className="font-semibold mt-4">🛡️ Session Info (Access Token Response):</p>
+        <p className="font-semibold mt-4">
+          🛡️ Session Info (Access Token Response):
+        </p>
         <pre className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
           {sessionInfo || "No token yet. Click login above."}
         </pre>
