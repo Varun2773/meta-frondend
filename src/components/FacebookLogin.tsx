@@ -74,15 +74,16 @@ const FacebookLogin = () => {
     const FB = window.FB;
     if (!FB) return;
 
-    console.log("Frontend redirect_uri:", encodeURIComponent(window.location.href));
+
+    console.log("Frontend redirect_uri:", (window.location.href));
     FB.login(
       (response: any) => {
         handleFBLogin(response);
       },
       {
-        config_id: "634146679679302",
+        config_id: "634146679679302", 
         response_type: "code",
-        redirect_uri: encodeURIComponent("https://meta-frondend.vercel.app/"),
+        redirect_uri: "https://meta-frondend.vercel.app/",
         override_default_response_type: true,
         extras: {
           version: "v3",
