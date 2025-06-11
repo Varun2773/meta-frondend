@@ -41,23 +41,34 @@ const FacebookLogin = () => {
       )
         return;
 
-      try {
-        const data = JSON.parse(event.data);
+      const messageData = event.data;
 
-        if (data.type === "WA_EMBEDDED_SIGNUP") {
-          if (data.event === "FINISH") {
-            const { phone_number_id, waba_id } = data.data;
-            console.log("FINISH → Phone:", phone_number_id, "WABA:", waba_id);
-          } else if (data.event === "CANCEL") {
-            console.warn("CANCEL → Step:", data.data.current_step);
-          } else if (data.event === "ERROR") {
-            console.error("ERROR →", data.data.error_message);
+      // Try to handle JSON
+      if (
+        typeof messageData === "string" &&
+        messageData.trim().startsWith("{")
+      ) {
+        try {
+          const data = JSON.parse(messageData);
+
+          if (data.type === "WA_EMBEDDED_SIGNUP") {
+            if (data.event === "FINISH") {
+              const { phone_number_id, waba_id } = data.data;
+              console.log("FINISH → Phone:", phone_number_id, "WABA:", waba_id);
+            } else if (data.event === "CANCEL") {
+              console.warn("CANCEL → Step:", data.data.current_step);
+            } else if (data.event === "ERROR") {
+              console.error("ERROR →", data.data.error_message);
+            }
+
+            setSessionInfo(JSON.stringify(data, null, 2));
           }
-
-          setSessionInfo(JSON.stringify(data, null, 2));
+        } catch (error: any) {
+          console.log("Error parsing JSON message:", messageData, error);
         }
-      } catch (error: any) {
-        console.log("Non-JSON message:", event.data, "error:", error);
+      } else {
+        // Handle non-JSON (e.g., query strings)
+        console.log("Non-JSON message received:", messageData);
       }
     };
 
@@ -89,7 +100,7 @@ const FacebookLogin = () => {
         extras: { version: "v3" },
       }
     );
-    console.log("FB :",FB);
+    console.log("FB :", FB);
   };
 
   // Handle Facebook Login Response
