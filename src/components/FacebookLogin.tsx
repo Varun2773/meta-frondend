@@ -39,6 +39,7 @@ const FacebookLoginRaw = () => {
     const interval = setInterval(() => {
       try {
         const url = popup?.location.href;
+        console.log(url)
         if (url && url.includes("code=")) {
           const parsed = new URL(url);
           const fbCode = parsed.searchParams.get("code");
