@@ -43,7 +43,8 @@ const FacebookLoginRaw = () => {
       if (
         event.origin !== "https://www.facebook.com" &&
         event.origin !== "https://web.facebook.com"
-      ) return;
+      )
+        return;
 
       try {
         const data = JSON.parse(event.data);
@@ -75,22 +76,13 @@ const FacebookLoginRaw = () => {
     }
 
     window.FB.login(
-      async (response: any) => {
+      (response: any) => {
         console.log("FB.login response:", response);
         setSdkResponse(response);
 
         const code = response.authResponse?.code;
         if (code) {
-          try {
-            const res = await axios.post(
-              "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
-              { code }
-            );
-            setBackendResponse(res.data);
-          } catch (error) {
-            console.error("Backend token exchange failed:", error);
-            setBackendResponse("Backend token exchange failed");
-          }
+          exchangeCode(code); // call async function outside
         }
       },
       {
@@ -100,6 +92,20 @@ const FacebookLoginRaw = () => {
         extras: { version: "v3" },
       }
     );
+  };
+
+  // Define async function separately
+  const exchangeCode = async (code: string) => {
+    try {
+      const res = await axios.post(
+        "https://rtserver-znbx.onrender.com/api/whatsapp/exchange-code",
+        { code }
+      );
+      setBackendResponse(res.data);
+    } catch (error) {
+      console.error("Backend token exchange failed:", error);
+      setBackendResponse("Backend token exchange failed");
+    }
   };
 
   return (
@@ -124,7 +130,9 @@ const FacebookLoginRaw = () => {
 
         <p className="font-semibold mt-6">Backend Exchange Response:</p>
         <pre className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
-          {backendResponse ? JSON.stringify(backendResponse, null, 2) : "Waiting..."}
+          {backendResponse
+            ? JSON.stringify(backendResponse, null, 2)
+            : "Waiting..."}
         </pre>
       </div>
     </div>
